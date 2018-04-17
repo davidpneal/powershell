@@ -1,4 +1,4 @@
-﻿#4/16/2018
+﻿#4/17/2018
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
@@ -15,12 +15,13 @@ Describe "Format-UserGroups" {
 	}
 
     It "calls Get-ADUser once per user" {
-        Format-UserGroups -identity dneal, jsmith		
+        Format-UserGroups -identity dneal, jsmith
 		Assert-MockCalled Get-ADuser -Times 2 -Exactly -Scope It
     }
 	
+	#May delete this test
 	It "should output one string per user" {
-        Format-UserGroups -identity dneal, jsmith		
+        Format-UserGroups -identity dneal, jsmith
 		#test?
     } -skip
 	
