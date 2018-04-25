@@ -1,50 +1,50 @@
-﻿#1/26/2018
+﻿#4/25/2018
 
 function Set-MailboxHidden {
 
 	[CmdletBinding(SupportsShouldProcess,
 				   ConfirmImpact='Low')]
 
-   Param(
+    Param(
 		[Parameter(ValueFromPipeline = $True, 
 				   Mandatory = $True, 
 				   Position = 0)]
 		[string[]]$identity,
 		
-		[string]$pssession,
+		#could probably also change this to type System.Management.Automation.Runspaces.PSSession
+		[object]$session,
 		
 		[switch]$unhide
 	)
 
-
+	
 	BEGIN {
-		Write-Verbose "[BEGIN ] Starting: $($MyInvocation.Mycommand)"
+		write-verbose "[BEGIN ] Starting: $($MyInvocation.Mycommand)"
 		$SessionResult = $null
 
 		#If a PSSession was passed, the necessary mailbox function needs to be loaded
-		If ($PSBoundParameters.ContainsKey('pssession')) {
+		if ($PSBoundParameters.ContainsKey('session')) {
 			try {
 				#Since a PSSession was explicitly passed, use -allowclobber in case the Set-RemoteMailbox command already exists
-				$SessionResult = Import-PSSession -Session $session -CommandName "Set-RemoteMailbox" -AllowClobber 
-					#NOTE: need to determine how to pull the value for the key (for $session above)
-					
+				$SessionResult = Import-PSSession -Session $session -CommandName "Set-RemoteMailbox" -AllowClobber 	
 			} catch {
-				#Go ahead and catch here even though the next check will stop execution if Set-RemoteMailbox doesn’t exist
-				#This will give a better error message other than "command doesn’t exist"
+				write-verbose $_
+				throw "Unable to import the Set-RemoteMailbox EMS command using the provided PSSession"
 			}
+		}
 
-			
-		#Make sure the necessary commands are loaded
+		
+		#Make sure the Set-RemoteMailbox command is loaded
 		try {
 			get-command "Set-RemoteMailbox" -erroraction stop
 		} catch {
-			throw "need OnPrem EMS cmd" #Maybe keep the original error message?
-			break #Make sure break skips the PROCESS block
+			write-verbose $_
+			throw "The Set-RemoteMailbox command is not currently available. Please connect to the OnPrem EMS and try again."
 		}
 			
 			
 		#The default action of the tool is to hide the mailbox ($true), if $unhide is set, then need to flip the setting to $false
-		If ($PSBoundParameters.ContainsKey('unhide')) {
+		if ($PSBoundParameters.ContainsKey('unhide')) {
 			$ShouldHide = $false
 		} else {
 			$ShouldHide = $true
@@ -72,7 +72,7 @@ function Set-MailboxHidden {
 			Remove-Module $SessionResult
 		}
 		
-		Write-Verbose "[END ] Ending: $($MyInvocation.Mycommand)"
+		write-verbose "[END ] Ending: $($MyInvocation.Mycommand)"
 		
 	} #END
 }
