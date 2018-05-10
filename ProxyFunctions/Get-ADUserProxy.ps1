@@ -1,4 +1,4 @@
-#4/27/2018
+#5/10/2018
 #The purpose of this proxy function is to help deal with old SAM account names that were truncated at 8 characters
 
 #The plan:
@@ -58,8 +58,35 @@ function Get-ADUser {
 		try {
 			$steppablePipeline.Process($_)
 		} catch {
-			write-error "This is where the extra error handling goes"
-			throw
+			
+			#Get the string value of the identity key from PSBoundParameters
+			$val = $PSBoundParameters['identity'].tostring()
+			
+			#Get the first 8 characters (this blows up if the string is less than 8 characters)
+			$val2 = $val.substring(0,8)
+			
+			
+			#Update the identity key value
+			#Fix - one of these commands displays 'True' to the console
+			$PSBoundParameters.Remove('identity')
+			$PSBoundParameters.Add('identity', $val2)
+			
+			#verify (testing)
+			$newval = $PSBoundParameters['identity'].tostring()
+			
+			write-output "val = $val"
+			write-output "newval = $newval"
+			
+			
+			#try again - not sure if this is a valid way of doing this - might break the pipeline
+			#Note - this works and gets the truncated identity but still throws the original error 
+			Write-warning "$val not found, trying again with $val2"
+			try {
+				get-aduser @PSBoundParameters
+			} catch {
+				throw
+			}
+			
 		}
 	}
 
