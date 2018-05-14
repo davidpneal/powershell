@@ -1,9 +1,10 @@
-#5/11/2018
+#5/14/2018
 #The purpose of this proxy function is to help deal with old SAM account names that were truncated at 8 characters
-
-#The plan:
 #If a provided -identity isnt found, the function will retry with just the first 8 characters in the provided string
-#Might see if can make the proxy only kick in when running the console host; just to make sure it doesnt break random scripts
+
+#Caveat: this will essentially create a second Get-ADUser command - when "help get-aduser" is run, help will return a list 
+#  of the 2 commands instead of displaying the help page.  Can work around this by adding: -Category Cmdlet to the help call
+
 
 function Get-ADUser {
 
@@ -36,6 +37,7 @@ function Get-ADUser {
 		}
 	}
 
+	
 	begin
 	{
 		try {
@@ -49,46 +51,35 @@ function Get-ADUser {
 			$steppablePipeline = $scriptCmd.GetSteppablePipeline($myInvocation.CommandOrigin)
 			$steppablePipeline.Begin($PSCmdlet)
 		} catch {
-			write-output "1 begin catch block"
 			throw
 		}
-		write-output "2 begin block end"
-	}
+	} #BEGIN
 
+	
 	process
 	{
-		write-output "3 process block start"
 		try {
 			$steppablePipeline.Process($_)
 		} catch {
-			
-						
+		
 			#Get the string value of the identity key from PSBoundParameters
-			$val = $PSBoundParameters['identity'].tostring()
+			$ident = $PSBoundParameters['identity'].tostring()
 			
-			#Get the first 8 characters (this blows up if the string is less than 8 characters)
-			$val2 = $val.substring(0,8)
+			#If the identity string was less than 8 characters or if there is a '@' in the string (UPN address), no need to do anyting else
+			if (($ident.length -gt 8) -and !($ident.contains('@')))  {
 			
+				$shortIdent = $ident.substring(0,8)
 			
-			#Update the identity key value
-			#The .remove method will output 'True' when called, redirect this to $null
-			$PSBoundParameters.Remove('identity') > $null
-			$PSBoundParameters.Add('identity', $val2) 
-			
-			#verify (testing)
-			$newval = $PSBoundParameters['identity'].tostring()
-			
-			#write-output "val = $val"
-			#write-output "newval = $newval"
-			
-			
-			#try again - not sure if this is a valid way of doing this - might break the pipeline
-			#Note - this works and gets the truncated identity but still throws the original error 
-			Write-warning "$val not found, trying again with $val2"
-			try {
-				write-output "4 calling get-aduser again"
-				#get-aduser @PSBoundParameters
+				#Update the identity key value
+				#The .remove method will output 'True' when called, redirect this to $null
+				$PSBoundParameters.Remove('identity') > $null
+				$PSBoundParameters.Add('identity', $shortIdent) 
+				
+				Write-warning "Cannot find an object with identity: $ident; trying again with $shortIdent"
+				
+				#Call Get-ADUser with the truncated identity string
 				try {
+			
 					$outBuffer = $null
 					if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
 					{
@@ -98,43 +89,24 @@ function Get-ADUser {
 					$scriptCmd = {& $wrappedCmd @PSBoundParameters}
 					$steppablePipeline = $scriptCmd.GetSteppablePipeline($myInvocation.CommandOrigin)
 					$steppablePipeline.Begin($PSCmdlet)
+									
 				} catch {
-					write-output "99 begin catch block"
 					throw
 				}
-			} catch {
-				write-output "5 catch from re-call"
-				throw
 			}
 			
-			write-output "6 catch from process block - end"
 		}
-		write-output "7 end of process block"
-		
-	}
+	} #PROCESS
 
 
 	end
 	{
-		write-output "8 end block start"
-		
 		try {
-			#$global:error.clear()
-			#write-output "end block error count: $error.count"
-			#write-output "end block error 0: $error[0]"
-			#write-output "end block  global error 0: $global:error[0]"
-			write-output "9 calling the end steppablePipeline"
 			$steppablePipeline.End()
-			write-output "10 after calling the end steppablePipeline"
 		} catch {
-			write-output "11 catch from end block"
 			throw
-			#THIS is where the throw message from the original error comes from -> $steppablePipeline.End() generates an error when called
-			#this probably isnt valid to comment out - seems to go into an infinite re-call loop without it (TEST MORE)
-			
 		}
-		write-output "12 end of end block"
-	}
+	} #END
 	<#
 
 	.ForwardHelpTargetName ActiveDirectory\Get-ADUser
