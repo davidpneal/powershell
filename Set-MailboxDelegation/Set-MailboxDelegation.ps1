@@ -1,4 +1,4 @@
-﻿#5/16/2018
+﻿#5/22/2018
 
 function Set-MailboxDelegation {
 
@@ -17,11 +17,13 @@ function Set-MailboxDelegation {
 		
 		[object]$session,
 		
-		[switch]$SendAs = $False,
+		[switch]$SendAs,
 		
 		[switch]$AutoMapping = $False,
 		
-		[switch]$RemovePermissions
+		[switch]$RemovePermissions,
+		
+		[switch]$Force
 	)
 	
 
@@ -34,7 +36,8 @@ function Set-MailboxDelegation {
 			try {
 				#Since a PSSession was explicitly passed, use -allowclobber in case the commands already exist
 				#write-verbose "[BEGIN  ] Attempting to import the necessary mailbox commands from the provided PSSession"
-				$SessionResult = Import-PSSession -Session $session -CommandName "Set-RemoteMailbox" -AllowClobber
+				$cmdlets = "Add-RecipientPermission", "Add-MailboxPermission", "Remove-MailboxPermission", "Remove-RecipientPermission"
+				$SessionResult = Import-PSSession -Session $session -CommandName $cmdlets -AllowClobber
 			} catch {
 				write-warning $_
 				throw "Unable to import the mailbox commands using the provided PSSession"
