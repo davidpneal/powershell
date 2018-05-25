@@ -1,7 +1,65 @@
-﻿#5/22/2018
+﻿#5/25/2018
 
 function Set-MailboxDelegation {
 
+	<#
+	.SYNOPSIS
+		This command is used to delegate access of an Office 365 mailbox to another user.
+	.DESCRIPTION
+		This command is used to modify access of an Office 365 mailbox in the exchange tenant to another user. 
+		The tool has the ability to grant FullAccess permission, SendAs permission or to remove those permissions.
+				
+		These setting are made in the Exchange Tenant and require several cmdlets from the tenant to be available.  
+		These cmdlets can either be loaded before running Set-MailboxDelegation or can be automatically loaded from a 
+		PSSession that is passed to the command.
+	.PARAMETER identity
+		One or more user accounts which will be delegated out. This tool will accept a SAM account name or a UPN.
+	.PARAMETER delegateTo
+		One or more user accounts to grant delegate access to.  This tool will assign FullAccess permissions for each 
+		'delegateTo' user to the specified 'identity' account(s). This tool will accept a SAM account name or a UPN.
+	.PARAMETER AutoMapping
+		This flag will set the account so it automatically is added to the delegee users' Outlook client.  The default
+		behavior is to not automatically map the mailbox into Outlook.
+	.PARAMETER SendAs
+		Use this flag to grant SendAs permission, by default this permission is not added. This permission is required
+		if the delegee user is to send emails from the delegated account.
+	.PARAMETER session
+		This parameter can be used to pass a previously established PSSession (connected to the Exchange Tenant) 
+		to the Set-MailboxDelegation tool.  Using this parameter has the advantage that the tool will load just the 
+		cmdlets it needs to change the permissions then will unload it afterward.  Note that this functionality will
+		automatically call Import-PSSession with the -allowclobber flag set.
+	.PARAMETER RemovePermissions
+		Use this flag to remove delegate permissions. Note that this command will specifically remove FullAccess and
+		SendAs permissions, if other permissions were set, those will need to be removed by other means.
+	.PARAMETER Force
+		When using RemovePermissions, PowerShell will prompt to confirm removing access. Use this flag to suppress that
+		prompt.
+	.EXAMPLE
+		Set-MailboxDelegation -identity jsmith -delegateTo dneal
+		To delegate jsmith's mailbox to dneal with FullAccess permissions. Requires the tenant commands to be loaded 
+		into the current session.
+	.EXAMPLE
+		Set-MailboxDelegation -identity jsmith -delegateTo dneal -AutoMapping
+		To delegate the permissions and automatically map the new mailbox into dneals outlook (default is disabled)
+	.EXAMPLE
+		Set-MailboxDelegation -identity jsmith -delegateTo dneal -SendAs
+		To delegate the permissions and also grant SendAs permissions for dneal.
+	.EXAMPLE
+		Set-MailboxDelegation -identity jsmith -delegateTo dneal -RemovePermissions
+		This command will remove the FullAccess and SendAs permissions from jsmith's mailbox for the user dneal. 
+	.EXAMPLE
+		Set-MailboxDelegation -identity jsmith -delegateTo dneal -PSSession $session
+		Delegates the permissions using the specified PSSession connection to the tenant
+	.EXAMPLE
+		Get-aduser jsmith | Set-MailboxDelegation -delegateTo dneal
+		Example usage for pipeline input
+	.EXAMPLE
+		Set-MailboxDelegation -identity jsmith -delegateTo dneal -RemovePermissions
+		To remove the delegation permissions for dneal from the jsmith account
+		Note: if this switch is used, the tool will ignore the SendAs and AutoMapping switches
+	#>
+	
+	
 	[CmdletBinding(SupportsShouldProcess,
 				   ConfirmImpact = 'Low')]
 				   
