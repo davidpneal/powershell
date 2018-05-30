@@ -1,4 +1,4 @@
-﻿#5/25/2018
+﻿#5/30/2018
 
 function Set-MailboxDelegation {
 
@@ -88,13 +88,13 @@ function Set-MailboxDelegation {
 	BEGIN {
 		write-verbose "[BEGIN  ] Starting: $($MyInvocation.Mycommand)"
 		$SessionResult = $null
-
+		$cmdlets = "Add-RecipientPermission", "Add-MailboxPermission", "Remove-MailboxPermission", "Remove-RecipientPermission"
+		
 		#If a PSSession was passed, the necessary mailbox commands need to be loaded
 		if ($PSBoundParameters.ContainsKey('session')) {
 			try {
 				#Since a PSSession was explicitly passed, use -allowclobber in case the commands already exist
 				#write-verbose "[BEGIN  ] Attempting to import the necessary mailbox commands from the provided PSSession"
-				$cmdlets = "Add-RecipientPermission", "Add-MailboxPermission", "Remove-MailboxPermission", "Remove-RecipientPermission"
 				$SessionResult = Import-PSSession -Session $session -CommandName $cmdlets -AllowClobber
 			} catch {
 				write-warning $_
@@ -107,10 +107,7 @@ function Set-MailboxDelegation {
 		try {
 			#redirect the output of this command to null to supress the output
 			write-verbose "[BEGIN  ] Checking to make sure the mailbox commands are available"
-			
-			## Decide how to check this - check for all 4 commands?  In theory, as long as connected to tenant, they should all be available
-			get-command "Set-RemoteMailbox" -erroraction stop > $null
-			
+			get-command $cmdlets -erroraction stop #> $null
 		} catch {
 			write-warning $_
 			throw "The necessary mailbox commands are not currently available. Please connect to the Exchange Tenant and try again."
@@ -120,11 +117,28 @@ function Set-MailboxDelegation {
 	
 	
     PROCESS {
-		foreach($user in $identity) {
-			
-			if ($PSCmdlet.ShouldProcess($user)) { 
+		foreach($user in $delegateTo) {
+					
+			foreach($mailbox in $identity) {
 				
-				
+				if(RemovePerms bound) {
+					if($PSCmdlet.ShouldProcess($mailbox)) { 
+						#remove perms
+						Remove-MailboxPermission
+						Remove-RecipientPerms
+					}
+				} else {
+					if($PSCmdlet.ShouldProcess($mailbox)) {
+						#add delegation
+						Add-MailboxPermission 
+						
+						#see what error message you get if delegating fails - might not need to catch at all; if it fails the user should see the error
+						
+						if(sendas bound) {
+							Add-RecipientPermission
+						}
+					}
+				}
 			}
 		}
 		
@@ -132,7 +146,7 @@ function Set-MailboxDelegation {
 	
 	
 	END {
-		If($SessionResult -ne $null) {
+		if($SessionResult -ne $null) {
 			write-verbose "[END    ] Unloading the temporary module containing the mailbox commands"
 			#Unload the temp module
 			Remove-Module $SessionResult
