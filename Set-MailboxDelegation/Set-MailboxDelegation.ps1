@@ -1,4 +1,4 @@
-﻿#5/30/2018
+﻿#6/1/2018
 
 function Set-MailboxDelegation {
 
@@ -33,7 +33,7 @@ function Set-MailboxDelegation {
 		SendAs permissions, if other permissions were set, those will need to be removed by other means.
 	.PARAMETER Force
 		When using RemovePermissions, PowerShell will prompt to confirm removing access. Use this flag to suppress that
-		prompt.
+		prompt.  If the confirm switch is called along with force, confirm will take precedence.
 	.EXAMPLE
 		Set-MailboxDelegation -identity jsmith -delegateTo dneal
 		To delegate jsmith's mailbox to dneal with FullAccess permissions. Requires the tenant commands to be loaded 
@@ -101,18 +101,27 @@ function Set-MailboxDelegation {
 				throw "Unable to import the mailbox commands using the provided PSSession"
 			}
 		}
-
 		
 		#Make sure the mailbox commands are loaded
 		try {
 			#redirect the output of this command to null to supress the output
 			write-verbose "[BEGIN  ] Checking to make sure the mailbox commands are available"
-			get-command $cmdlets -erroraction stop #> $null
+			get-command $cmdlets -erroraction stop > $null
 		} catch {
 			write-warning $_
 			throw "The necessary mailbox commands are not currently available. Please connect to the Exchange Tenant and try again."
 		}
-			
+		
+		#The Remove commands both prompt for confirmation by default. Set-MailboxDelegation takes both a force and confirm switch - force
+		#suppresses the prompts on the two individual Remove commands and Confirm prompts when calling the two Add or two Remove cmdlets. 
+		#The result is the only time the individual Remove commands should prompt is if neither Confirm or Force are called
+		#Note that if Confirm and Force are called together, the Confirm behavior takes precedence
+		if (($Force -eq $false) -and (-not ($PSBoundParameters.ContainsKey('confirm')))) {
+			$showConfirm = $true
+		} else {
+			$showConfirm = $false
+		}
+		
 	} #BEGIN
 	
 	
@@ -121,21 +130,19 @@ function Set-MailboxDelegation {
 					
 			foreach($mailbox in $identity) {
 				
-				if(RemovePerms bound) {
-					if($PSCmdlet.ShouldProcess($mailbox)) { 
-						#remove perms
-						Remove-MailboxPermission
-						Remove-RecipientPerms
+				if($PSBoundParameters.ContainsKey('RemovePermissions')) {
+					if($PSCmdlet.ShouldProcess($mailbox, "Remove mailbox permissions")) { 
+
+						Remove-MailboxPermission -Identity $mailbox -User $user -AccessRights 'FullAccess' -confirm:$showConfirm
+						Remove-RecipientPermission -Identity $mailbox -Trustee $user -AccessRights sendas -confirm:$showConfirm
 					}
 				} else {
-					if($PSCmdlet.ShouldProcess($mailbox)) {
-						#add delegation
-						Add-MailboxPermission 
+					if($PSCmdlet.ShouldProcess($mailbox, "Add mailbox permissions")) {
 						
-						#see what error message you get if delegating fails - might not need to catch at all; if it fails the user should see the error
-						
-						if(sendas bound) {
-							Add-RecipientPermission
+						Add-MailboxPermission -Identity $mailbox -User $user -AccessRights 'FullAccess' -AutoMapping $AutoMapping
+
+						if($PSBoundParameters.ContainsKey('SendAs')) {
+							Add-RecipientPermission -Identity $mailbox -Trustee $user -AccessRights sendas -confirm:$false
 						}
 					}
 				}
