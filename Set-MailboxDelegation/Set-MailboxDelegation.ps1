@@ -1,4 +1,4 @@
-﻿#6/1/2018
+﻿#6/4/2018
 
 function Set-MailboxDelegation {
 
@@ -131,17 +131,20 @@ function Set-MailboxDelegation {
 			foreach($mailbox in $identity) {
 				
 				if($PSBoundParameters.ContainsKey('RemovePermissions')) {
+								
 					if($PSCmdlet.ShouldProcess($mailbox, "Remove mailbox permissions")) { 
-
+						write-verbose "[PROCESS] Removing permissions from mailbox $mailbox for user $user"
 						Remove-MailboxPermission -Identity $mailbox -User $user -AccessRights 'FullAccess' -confirm:$showConfirm
 						Remove-RecipientPermission -Identity $mailbox -Trustee $user -AccessRights sendas -confirm:$showConfirm
 					}
+					
 				} else {
 					if($PSCmdlet.ShouldProcess($mailbox, "Add mailbox permissions")) {
-						
+						write-verbose "[PROCESS] Adding FullAccess permissions for user $user to mailbox $mailbox"
 						Add-MailboxPermission -Identity $mailbox -User $user -AccessRights 'FullAccess' -AutoMapping $AutoMapping
 
 						if($PSBoundParameters.ContainsKey('SendAs')) {
+							write-verbose "[PROCESS] Adding SendAs permissions for user $user to mailbox $mailbox"
 							Add-RecipientPermission -Identity $mailbox -Trustee $user -AccessRights sendas -confirm:$false
 						}
 					}
