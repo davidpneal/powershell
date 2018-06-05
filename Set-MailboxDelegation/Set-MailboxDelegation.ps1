@@ -1,4 +1,4 @@
-﻿#6/4/2018
+﻿#6/5/2018
 
 function Set-MailboxDelegation {
 
@@ -26,7 +26,7 @@ function Set-MailboxDelegation {
 	.PARAMETER session
 		This parameter can be used to pass a previously established PSSession (connected to the Exchange Tenant) 
 		to the Set-MailboxDelegation tool.  Using this parameter has the advantage that the tool will load just the 
-		cmdlets it needs to change the permissions then will unload it afterward.  Note that this functionality will
+		cmdlets it needs to change the permissions then will unload them afterward.  Note that this functionality will
 		automatically call Import-PSSession with the -allowclobber flag set.
 	.PARAMETER RemovePermissions
 		Use this flag to remove delegate permissions. Note that this command will specifically remove FullAccess and
@@ -48,11 +48,15 @@ function Set-MailboxDelegation {
 		Set-MailboxDelegation -identity jsmith -delegateTo dneal -RemovePermissions
 		This command will remove the FullAccess and SendAs permissions from jsmith's mailbox for the user dneal. 
 	.EXAMPLE
-		Set-MailboxDelegation -identity jsmith -delegateTo dneal -PSSession $session
+		Set-MailboxDelegation -identity jsmith -delegateTo dneal -session $session
 		Delegates the permissions using the specified PSSession connection to the tenant
 	.EXAMPLE
-		Get-aduser jsmith | Set-MailboxDelegation -delegateTo dneal
-		Example usage for pipeline input
+		(Get-ADUser jsmith).userprincipalname | Set-MailboxDelegation -delegateTo dneal
+		Example usage for pipeline input.  Note that the output from Get-ADUser will be coerced into a distinguished name 
+		which the hybrid tenant cannot use; hence specifically passing the UPN.  Passing the SAM Account Name works too.
+	.EXAMPLE	
+		"jsmith","ajones" | Set-MailboxDelegation -delegateTo dneal
+		Example usage for pipeline input.  Passing an array of SAM Account Names or UPN's is acceptable.
 	.EXAMPLE
 		Set-MailboxDelegation -identity jsmith -delegateTo dneal -RemovePermissions
 		To remove the delegation permissions for dneal from the jsmith account
@@ -94,7 +98,7 @@ function Set-MailboxDelegation {
 		if ($PSBoundParameters.ContainsKey('session')) {
 			try {
 				#Since a PSSession was explicitly passed, use -allowclobber in case the commands already exist
-				#write-verbose "[BEGIN  ] Attempting to import the necessary mailbox commands from the provided PSSession"
+				write-verbose "[BEGIN  ] Attempting to import the necessary mailbox commands from the provided PSSession"
 				$SessionResult = Import-PSSession -Session $session -CommandName $cmdlets -AllowClobber
 			} catch {
 				write-warning $_
@@ -158,8 +162,8 @@ function Set-MailboxDelegation {
 	END {
 		if($SessionResult -ne $null) {
 			write-verbose "[END    ] Unloading the temporary module containing the mailbox commands"
-			#Unload the temp module
-			Remove-Module $SessionResult
+			#Need to add -whatif:$false otherwise the temp module is not unloaded when -WhatIf is used
+			Remove-Module $SessionResult -whatif:$false -confirm:$false
 		}	
 		
 		write-verbose "[END    ] Ending: $($MyInvocation.Mycommand)"

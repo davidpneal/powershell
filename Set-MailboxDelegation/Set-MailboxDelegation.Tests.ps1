@@ -1,4 +1,4 @@
-﻿#5/23/2018
+﻿#6/5/2018
 
 #In order for these tests to work, the exchange tenant commands must exist on the machine testing is being run from
 #The easiest way is to make a connecion to the Exchange tenant so it generates a temporary module with the commands
@@ -26,11 +26,6 @@ Describe "Set-MailboxDelegation" {
 		return 1
 	}
 		
-	Mock Get-ADUser {
-		return @{'Name'='John Smith';
-				 'MemberOf'='{CN=Domain Users,OU=Security Groups,DC=domain,DC=com}'}
-	}
-	
 	
 	It "calls Add-MailboxPermission in basic usage" {
 		Set-MailboxDelegation -identity jsmith -delegateTo dneal
@@ -75,8 +70,8 @@ Describe "Set-MailboxDelegation" {
 	}
 
 	It "should accept input via the pipeline" {
-		Get-aduser jsmith | Set-MailboxDelegation -delegateTo dneal
-		Assert-MockCalled Add-MailboxPermission -Times 1 -Exactly -Scope It
+		"jsmith","ajones" | Set-MailboxDelegation -delegateTo dneal
+		Assert-MockCalled Add-MailboxPermission -Times 2 -Exactly -Scope It
 	}
 	
 }
