@@ -1,29 +1,56 @@
-#12/10/2016
-#This function will calculate the password expiration date for the specified account(s).
-#Outputs an ADUser object with 2 fields - Displayname and Expiration Date
+#6/6/2018
 
-#Improve: currently, if the user account "PasswordNeverExpires" is $true, the script returns a blank for the expiration date
-#Improve - allow pipeline input
 Function Get-PasswordExpiration()
 {
     <#
 	.SYNOPSIS
-	Gets the password expiration date for the specified user(s).
-	.PARAMETER users
-	The user account(s) to check the password expiration date for.  Needs to be specified as a SAMaccount name.
+	This function will calculate the password expiration date for the specified account(s).
+	.PARAMETER identity
+	The user account(s) to get the password expiration date for.
 	.EXAMPLE
-	Get-PasswordExpiration -users "jsmith","jdoe"
-	Returns the password expiration date and time for jsmith and jdoe
+	Get-PasswordExpiration -identity "jsmith","jdoe"
+	Get the password expiration date and time for jsmith and jdoe.
+	.EXAMPLE
+	Get-ADUser jsmith | Get-PasswordExpiration
+	Pipeline usage example.
+	.EXAMPLE
+	get-aduser -searchbase "OU=Office,OU=Remote,DC=company,DC=com" -filter * | Get-PasswordExpiration
+	Get the expiration date of all users in the 'Office' OU.
 	#>
 	
+	
 	[cmdletbinding()]
-	param([parameter(Mandatory=$true)][AllowEmptyString()][String[]]$users)	
-	#improve - allow to pass objects from pipeline (ValueFromPipeline=$true), and if possible also pass by value - identity (from aduser)
+	
+	Param(	
+		[Parameter(ValueFromPipeline = $True, 
+				   Mandatory = $True,  
+				   Position = 0)]
+		[string[]]$identity
+	)
+
+	
+	BEGIN {
+		#Intentionally empty
+	} #BEGIN
+
+	
+	PROCESS {
+		foreach($user in $identity) {
 		
-	foreach($user in $users) {
-		#Try catch failed AD Lookup
-		#If there is no expiration date. specify "Never Expires"
-		Get-ADUser $user -Properties "DisplayName", "msDS-UserPasswordExpiryTimeComputed" |
-			select -Property "Displayname",@{Name="Expiration Date";Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}
-	}
+			$adObject = Get-ADUser $user -Properties "DisplayName", "msDS-UserPasswordExpiryTimeComputed", "PasswordNeverExpires"
+			
+			if($adObject.PasswordNeverExpires -eq $true) {
+				write-output $adObject | select -Property "Displayname",@{Name="ExpirationDate";Expression={"Never Expires"}}
+			} else {
+				write-output $adObject | select -Property "Displayname",@{Name="ExpirationDate";Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}
+			}
+		}
+		
+	} #PROCESS
+	
+	
+	END {
+		#Intentionally empty
+	} #END
+	
 }
