@@ -1,4 +1,4 @@
-#6/20/2018
+#6/25/2018
 
 function Disable-UserAccount {
 
@@ -64,24 +64,33 @@ function Disable-UserAccount {
 		if ( -not $PSBoundParameters.ContainsKey('credential')) {
 			write-verbose "[BEGIN  ] Get user credentials so a connection to the exchange environment can be established."
 			$credential = get-credential -credential $credUser
+		} else {
+			write-verbose "[BEGIN  ] User credentials were passed to the function when it was called."
 		}
 		
 		if ($PSBoundParameters.ContainsKey('delegateTo')) {
 			write-verbose "[BEGIN  ] Create a connection to the Exchange Tenant"
 			
-			$TenantSession = Connect-Tenant -credential $credential -sessiononly
-			if($TenantSession -eq $null) { # AND not -force ?
-				#Prompt user - see if they want to continue (if they continue, they must do xyz manually)
-				#Prob use ShouldContinue for this
+			try {
+				$TenantSession = Connect-Tenant -credential $credential -sessiononly -erroraction stop
+			} catch {
+				write-warning "There was an issue connecting to the Exchange Tenant"
+				$continueMsg = "Without this connection, the mailbox delegation will need to be set manually."
+				if( -not ($PSCmdlet.ShouldContinue("Do you wish to continue?",$continueMsg))) {
+					break
+				}
 			}
-			
 		} else {
 			write-verbose "[BEGIN  ] Create a connection to the On Premises Exchange environment"
 		
-			$EMSSession = Connect-OnPremEMS -credential $credential -sessiononly
-			if($EMSSesson -eq $null) {
-				#Prompt user - see if they want to continue
-				#Prob use ShouldContinue for this
+			try {
+				$EMSSession = Connect-OnPremEMS -credential $credential -sessiononly -erroraction stop
+			} catch {
+				write-warning "There was an issue connecting to the On Premises Exchange environment"
+				$continueMsg = "Without this connection, the mailbox will need to be hidden in the global address list manually."
+				if( -not ($PSCmdlet.ShouldContinue("Do you wish to continue?",$continueMsg))) {
+					break
+				}
 			}
 		}
 				
@@ -90,9 +99,9 @@ function Disable-UserAccount {
 	
 	PROCESS {
 		foreach($user in $identity) {
-		
+			write-verbose "[PROCESS] Disabling account $user"
 		}
-
+		
 		
 	} #PROCESS
 	
