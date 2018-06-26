@@ -1,4 +1,4 @@
-﻿#6/19/2018
+﻿#6/26/2018
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
@@ -9,13 +9,14 @@ Describe "Disable-UserAccount" {
 	#Guard mock ~ this might be too broad, narrow it to only AD module?
 	#Mock Import-Module
 
-
+	#These two mocks dont seem to work...
 	Mock Connect-OnPremEMS {
 		return $true
 	}
 	Mock Connect-Tenant {
 		return $true
 	}
+	
 	
 	Mock Format-UserGroups -verifiable {
 	} 
@@ -50,14 +51,11 @@ Describe "Disable-UserAccount" {
 	Mock Get-Credential {
 	}
 
-	$MockCred = New-MockObject PSCredential
+	$MockCred = New-MockObject System.Management.Automation.PSCredential
 
 	
 	
-	
-
-
-	
+		
 	It "Calls Get-Credential when a cred is not passed" {
 		Disable-UserAccount -identity auser -force
 		Assert-MockCalled Get-Credential -Times 1 -Exactly -Scope It
@@ -68,11 +66,20 @@ Describe "Disable-UserAccount" {
 		Assert-MockCalled Get-Credential -Times 0 -Exactly -Scope It
 	}
 	
-	#it calls Set-MailboxDelegation when the -delegateTo param is used
+	It "Calls Set-MailboxDelegation when the -delegateTo param is used" {
+		Disable-UserAccount -identity auser -force -delegateTo jsmith -credential $MockCred
+		Assert-MockCalled Set-MailboxDelegation -Times 1 -Exactly -Scope It
+	}
 	
-	#it calls Set-MailboxHidden when -delegateTo is not used
+	It "Calls Set-MailboxHidden when -delegateTo is not used" {
+		Disable-UserAccount -identity auser -force -credential $MockCred
+		Assert-MockCalled Set-MailboxHidden -Times 1 -Exactly -Scope It
+	}
 	
-	#it takes more than one identity
+	It "Takes more than one identity" {
+		Disable-UserAccount -identity auser -force -credential $MockCred
+		Assert-MockCalled Set-MailboxHidden -Times 2 -Exactly -Scope It
+	}
 	
 	It 'Calls the other functions as expected' {
 		Assert-VerifiableMock
