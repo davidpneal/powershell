@@ -1,4 +1,4 @@
-#6/25/2018
+#6/28/2018
 
 function Disable-UserAccount {
 
@@ -99,10 +99,31 @@ function Disable-UserAccount {
 	
 	PROCESS {
 		foreach($user in $identity) {
-			write-verbose "[PROCESS] Disabling account $user"
-		}
-		
-		
+			write-verbose "[PROCESS] Querying Active Directory for the user account that matches $user"
+			try {
+				$userAccount = get-aduser "$user" -properties memberof, description
+				write-verbose "[PROCESS] AD account found: $userAccount"
+			} catch {
+				write-error "An error has occurred trying to access the user account for $user, please try again."
+				break
+			}
+			
+			$userName = $userAccount.Name
+			$userUPN = $userAccount.UserPrincipalName
+			#Also grab the OU where the account is located
+			
+			if($force -or $PSCmdlet.ShouldContinue("Do you wish to continue?","The account for $userName will be disabled")) {
+			
+				write-output "inside the should continue block!"
+			
+			
+			
+			
+			
+			} #End ShouldContinue
+			
+		} #End foreach
+				
 	} #PROCESS
 	
 	
