@@ -1,4 +1,4 @@
-#6/28/2018
+#7/2/2018
 
 function Disable-UserAccount {
 
@@ -50,7 +50,8 @@ function Disable-UserAccount {
 		write-verbose "[BEGIN  ] Starting: $($MyInvocation.Mycommand)"
 		
 		#Script Variables:
-		$groupsLogPath = "\\server\share\scriptlogs\DisableUserAccount"
+		#$groupsLogPath = "\\server\share\scriptlogs\DisableUserAccount"
+		$groupsLogPath = "c:\tools\scripting"
 		$disabledOUDN = "OU=disabledusers,DC=company,DC=com"
 	
 		write-verbose "[BEGIN  ] Test to see if the Active Directory module is already loaded in the current session."
@@ -105,7 +106,7 @@ function Disable-UserAccount {
 				write-verbose "[PROCESS] AD account found: $userAccount"
 			} catch {
 				write-error "An error has occurred trying to access the user account for $user, please try again."
-				break
+				continue
 			}
 			
 			$userName = $userAccount.Name
@@ -114,12 +115,35 @@ function Disable-UserAccount {
 			
 			if($force -or $PSCmdlet.ShouldContinue("Do you wish to continue?","The account for $userName will be disabled")) {
 			
-				write-output "inside the should continue block!"
+				write-verbose "[PROCESS] Making a record of the user's groups to $groupsLogPath\$user.txt"
+				try {
+					Format-UserGroups $user | out-file "$groupsLogPath\$user.txt" -append -encoding UTF8
+					Add-Content -path "$groupsLogPath\$user.txt" -value "`r`nReport generated $(get-date -format d)"
+					write-verbose "[PROCESS] User's groups have successfully been added to the file $groupsLogPath\$user.txt"
+				} catch {
+					write-warning "An error has occurred when trying to record the user's group memberships to $groupsLogPath\$user.txt"
+					$continueMsg = "If the disable script continues, the user group membership information will be lost."
+					if( -not ($PSCmdlet.ShouldContinue("Do you wish to continue?",$continueMsg))) {
+						continue
+					}
+				}
+				
+				write-verbose "[PROCESS] Removing the user from all Active Directory groups except Domain Users"
+				if($PSCmdlet.ShouldProcess($user, "Remove Active Directory group memberships")) {	
+					try {	
+						$userAccount.memberof | foreach-object { 
+							Get-ADGroup $_ -erroraction stop | Remove-ADGroupMember -confirm:$false -member $user -erroraction stop
+						}
+					} catch {
+						write-error "An error has occurred when trying to remove the Active Directory groups from $user"
+					}
+				}
+				
+				
+				
 			
-			
-			
-			
-			
+				write-output "end of process"
+							
 			} #End ShouldContinue
 			
 		} #End foreach
