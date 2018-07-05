@@ -1,4 +1,4 @@
-#7/2/2018
+#7/5/2018
 
 function Disable-UserAccount {
 
@@ -10,7 +10,8 @@ function Disable-UserAccount {
 	.PARAMETER identity
 	One or more user accounts to disable.  Must be specified as a SAMaccount name.
 	.PARAMETER delegateTo
-	One or more users to delegate email access to.  This delegate permission will be applied to all identity accounts
+	One or more users to delegate email access to.  This delegate permission will be applied to all identity accounts.  This delegation will not grant
+	SendAs rights or map the delegated mailbox into the 'delegateTo' user's Outlook client.
 	Note: when this parameter is invoked, the user will not be hidden in the GAL.
 	.PARAMETER credential
 	Credentials used to connect to the exchange environment.  The username in the credential must be specified as a UPN.  This parameter only affects the credentials used to access the exchange environments (tenant and on-prem); the rest of the commands will be run under the currently logged on user.
@@ -139,7 +140,34 @@ function Disable-UserAccount {
 					}
 				}
 				
+				$params = @{
+					identity = $user
+					WhatIf = $WhatIfPreference
+					Verbose = $VerbosePreference
+				}
 				
+				#If the user's mailbox is being delegated, it cant be hidden in the GAL since OWA must be able to search for and find it
+				if ($PSBoundParameters.ContainsKey('delegateTo')) {
+					write-verbose "[PROCESS] Call the command to delegate access to the mailbox"
+					
+					$params.add("delegateTo", $delegateTo)	
+					$params.add("session", $TenantSession)	
+					try {
+						Set-MailboxDelegation @params
+					} catch {
+						write-error "There was an error when attempting to delegate access to the mailbox.  This step will need to be done manually."
+					}
+				} else {
+					write-verbose "[PROCESS] Call the command to hide the mailbox in the Global Address List."
+					
+					$params.add("session", $EMSSession)	
+					try {
+						Set-MailboxHidden @params
+					} catch {
+						write-error "There was an error when attempting to hide the mailbox in the GAL. This step will need to be done manually."
+					}
+				}
+
 				
 			
 				write-output "end of process"
@@ -155,11 +183,11 @@ function Disable-UserAccount {
 		write-verbose "[END    ] Close the open PSSessions"
 		
 		if($TenantSession -ne $null) {
-			Remove-PSSession $TenantSession
+			Remove-PSSession $TenantSession -WhatIf:$false
 		}
 			
 		if($EMSSession -ne $null) {
-			Remove-PSSession $EMSSession 
+			Remove-PSSession $EMSSession -WhatIf:$false
 		}
 				
 		write-verbose "[END    ] Ending: $($MyInvocation.Mycommand)"
