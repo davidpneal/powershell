@@ -1,4 +1,4 @@
-#7/5/2018
+#7/10/2018
 
 function Disable-UserAccount {
 
@@ -118,7 +118,7 @@ function Disable-UserAccount {
 			
 				write-verbose "[PROCESS] Making a record of the user's groups to $groupsLogPath\$user.txt"
 				try {
-					Format-UserGroups $user | out-file "$groupsLogPath\$user.txt" -append -encoding UTF8
+					Format-UserGroups $userAccount | out-file "$groupsLogPath\$user.txt" -append -encoding UTF8
 					Add-Content -path "$groupsLogPath\$user.txt" -value "`r`nReport generated $(get-date -format d)"
 					write-verbose "[PROCESS] User's groups have successfully been added to the file $groupsLogPath\$user.txt"
 				} catch {
@@ -140,8 +140,11 @@ function Disable-UserAccount {
 					}
 				}
 				
+				#This hash table is used to pass the preference variables from the script scope to the module scope for the functions 
+				#called below.  Powershell does this automatically for built in cmdlets, but custom (module) functions need these passed 
+				#explicitly so WhatIf and verbose get passed to the called function.
 				$params = @{
-					identity = $user
+					identity = $userUPN
 					WhatIf = $WhatIfPreference
 					Verbose = $VerbosePreference
 				}
@@ -168,9 +171,29 @@ function Disable-UserAccount {
 					}
 				}
 
+				write-verbose "[PROCESS] Appending the date to the description of the user account"
+				try{
+					Set-ADUser -identity $userAccount -Description "$($userAccount.Description) - Disabled $(get-date -f d)" -erroraction stop
+				}catch{
+					write-error "An error has occurred when trying to modify the account description. This step will need to be done manually."
+				}
 				
+				write-verbose "[PROCESS] Disabling the user account in Active Directory"
+				try{
+					Disable-ADAccount -identity $userAccount -erroraction stop
+				}catch{
+					write-error "An error has occurred when trying to disable the user account in AD. This step will need to be done manually."
+				}
+					
+				write-verbose "[PROCESS] Moving the user account to the Disabled Users OU in Active Directory"
+				try{
+					Move-ADObject -identity $userAccount -targetpath $disabledOUDN -erroraction stop
+				}catch{
+					write-error "An error has occurred when trying to move the user account to Disabled Users. This step will need to be done manually."
+				}
 			
-				write-output "end of process"
+				$result = get-aduser "$userAccount" | format-list -property Name,Enabled,@{label='Location';expression={$_.DistinguishedName -replace '^.*OU=|,.*$'}}
+				write-output "Result: $result"
 							
 			} #End ShouldContinue
 			
