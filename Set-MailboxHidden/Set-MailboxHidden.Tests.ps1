@@ -1,4 +1,4 @@
-﻿#4/26/2018
+﻿#7/12/2018
 
 #In order for these tests to work, the Set-RemoteMailbox command must exist on the machine testing is being run from
 #The easiest way is to make a connecion to the On-Prem EMS so it generates a temporary module with the command
@@ -60,13 +60,13 @@ Describe "Set-MailboxHidden" {
 #		$script:$ShouldHide | should be $false
 	} -skip
 	
-	It "attempts to Import-PSSession when the -session parameter is used" {
-		Set-MailboxHidden -identity user -session "test" -verbose
+	It "attempts to Import-PSSession when the -pssession parameter is used" {
+		Set-MailboxHidden -identity user -pssession "test" -verbose
 		Assert-MockCalled Import-PSSession -Times 1 -Exactly -Scope It
 	}
 	
-	It "removes the temporary module created when the -session parameter is used" {
-		Set-MailboxHidden -identity user -session $session -verbose
+	It "removes the temporary module created when the -pssession parameter is used" {
+		Set-MailboxHidden -identity user -pssession $session -verbose
 		Assert-MockCalled Remove-Module -Times 1 -Exactly -Scope It
 	}
 	

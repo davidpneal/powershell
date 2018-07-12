@@ -1,4 +1,4 @@
-﻿#6/5/2018
+﻿#7/12/2018
 
 function Set-MailboxDelegation {
 
@@ -23,7 +23,7 @@ function Set-MailboxDelegation {
 	.PARAMETER SendAs
 		Use this flag to grant SendAs permission, by default this permission is not added. This permission is required
 		if the delegee user is to send emails from the delegated account.
-	.PARAMETER session
+	.PARAMETER pssession
 		This parameter can be used to pass a previously established PSSession (connected to the Exchange Tenant) 
 		to the Set-MailboxDelegation tool.  Using this parameter has the advantage that the tool will load just the 
 		cmdlets it needs to change the permissions then will unload them afterward.  Note that this functionality will
@@ -48,7 +48,7 @@ function Set-MailboxDelegation {
 		Set-MailboxDelegation -identity jsmith -delegateTo dneal -RemovePermissions
 		This command will remove the FullAccess and SendAs permissions from jsmith's mailbox for the user dneal. 
 	.EXAMPLE
-		Set-MailboxDelegation -identity jsmith -delegateTo dneal -session $session
+		Set-MailboxDelegation -identity jsmith -delegateTo dneal -pssession $session
 		Delegates the permissions using the specified PSSession connection to the tenant
 	.EXAMPLE
 		(Get-ADUser jsmith).userprincipalname | Set-MailboxDelegation -delegateTo dneal
@@ -77,7 +77,7 @@ function Set-MailboxDelegation {
 				   Position = 1)]
 		[string[]]$delegateTo,
 		
-		[object]$session,
+		[object]$pssession,
 		
 		[switch]$SendAs,
 		
@@ -95,13 +95,12 @@ function Set-MailboxDelegation {
 		$cmdlets = "Add-RecipientPermission", "Add-MailboxPermission", "Remove-MailboxPermission", "Remove-RecipientPermission"
 		
 		#If a PSSession was passed, the necessary mailbox commands need to be loaded
-		if ($PSBoundParameters.ContainsKey('session')) {
+		if ($PSBoundParameters.ContainsKey('pssession')) {
 			try {
 				#Since a PSSession was explicitly passed, use -allowclobber in case the commands already exist
 				write-verbose "[BEGIN  ] Attempting to import the necessary mailbox commands from the provided PSSession"
-				$SessionResult = Import-PSSession -Session $session -CommandName $cmdlets -AllowClobber
+				$SessionResult = Import-PSSession -Session $pssession -CommandName $cmdlets -AllowClobber
 			} catch {
-				write-warning $_
 				throw "Unable to import the mailbox commands using the provided PSSession"
 			}
 		}
@@ -112,7 +111,6 @@ function Set-MailboxDelegation {
 			write-verbose "[BEGIN  ] Checking to make sure the mailbox commands are available"
 			get-command $cmdlets -erroraction stop > $null
 		} catch {
-			write-warning $_
 			throw "The necessary mailbox commands are not currently available. Please connect to the Exchange Tenant and try again."
 		}
 		

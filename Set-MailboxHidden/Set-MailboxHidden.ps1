@@ -1,4 +1,4 @@
-﻿#5/8/2018
+﻿#7/12/2018
 
 function Set-MailboxHidden {
 	
@@ -13,7 +13,7 @@ function Set-MailboxHidden {
 	.PARAMETER identity
 		One or more user account names to hide or unhide from the global address list.  This tool will accept
 		a SAM account name or a UPN.
-	.PARAMETER session
+	.PARAMETER pssession
 		This parameter can be used to pass a previously established PSSession (connected to the On-Prem hybrid 
 		exchange server) to the Set-MailboxHidden tool.  Using this parameter has the advantage that the tool 
 		will load just the single Set-RemoteMailbox command it needs then will unload it afterward.  Note that 
@@ -50,7 +50,7 @@ function Set-MailboxHidden {
 		[string[]]$identity,
 		
 		#could probably also change this to type System.Management.Automation.Runspaces.PSSession
-		[object]$session,
+		[object]$pssession,
 		
 		[switch]$unhide
 	)
@@ -61,13 +61,12 @@ function Set-MailboxHidden {
 		$SessionResult = $null
 
 		#If a PSSession was passed, the necessary mailbox function needs to be loaded
-		if ($PSBoundParameters.ContainsKey('session')) {
+		if ($PSBoundParameters.ContainsKey('pssession')) {
 			try {
 				#Since a PSSession was explicitly passed, use -allowclobber in case the Set-RemoteMailbox command already exists
 				#write-verbose "[BEGIN  ] Attempting to import Set-RemoteMailbox from the provided PSSession"
-				$SessionResult = Import-PSSession -Session $session -CommandName "Set-RemoteMailbox" -AllowClobber
+				$SessionResult = Import-PSSession -Session $pssession -CommandName "Set-RemoteMailbox" -AllowClobber
 			} catch {
-				write-warning $_
 				throw "Unable to import the Set-RemoteMailbox EMS command using the provided PSSession"
 			}
 		}
@@ -79,7 +78,6 @@ function Set-MailboxHidden {
 			write-verbose "[BEGIN  ] Checking to make sure the Set-RemoteMailbox command is available"
 			get-command "Set-RemoteMailbox" -erroraction stop > $null
 		} catch {
-			write-warning $_
 			throw "The Set-RemoteMailbox command is not currently available. Please connect to the OnPrem EMS and try again."
 		}
 			
@@ -111,7 +109,7 @@ function Set-MailboxHidden {
 		If($SessionResult -ne $null) {
 			write-verbose "[END    ] Unloading the temporary module containing Set-RemoteMailbox"
 			#Unload the temp module
-			Remove-Module $SessionResult
+			Remove-Module $SessionResult -WhatIf:$false -confirm:$false
 		}	
 		
 		write-verbose "[END    ] Ending: $($MyInvocation.Mycommand)"
