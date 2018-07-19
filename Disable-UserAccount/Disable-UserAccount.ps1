@@ -1,4 +1,4 @@
-#7/10/2018
+#7/19/2018
 
 function Disable-UserAccount {
 
@@ -30,7 +30,7 @@ function Disable-UserAccount {
 	
 	
 	[CmdletBinding(SupportsShouldProcess,
-				   ConfirmImpact='High')]
+				   ConfirmImpact='Medium')]
 				   
 	Param(
 		[Parameter(Position=0, 
@@ -51,9 +51,9 @@ function Disable-UserAccount {
 		write-verbose "[BEGIN  ] Starting: $($MyInvocation.Mycommand)"
 		
 		#Script Variables:
-		#$groupsLogPath = "\\server\share\scriptlogs\DisableUserAccount"
-		$groupsLogPath = "c:\tools\scripting"
+		$groupsLogPath = "\\server\share\scriptlogs\DisableUserAccount"
 		$disabledOUDN = "OU=disabledusers,DC=company,DC=com"
+
 	
 		write-verbose "[BEGIN  ] Test to see if the Active Directory module is already loaded in the current session."
 		if (Get-Module -Name "ActiveDirectory") {
@@ -154,7 +154,7 @@ function Disable-UserAccount {
 					write-verbose "[PROCESS] Call the command to delegate access to the mailbox"
 					
 					$params.add("delegateTo", $delegateTo)	
-					$params.add("session", $TenantSession)	
+					$params.add("pssession", $TenantSession)	
 					try {
 						Set-MailboxDelegation @params
 					} catch {
@@ -163,7 +163,7 @@ function Disable-UserAccount {
 				} else {
 					write-verbose "[PROCESS] Call the command to hide the mailbox in the Global Address List."
 					
-					$params.add("session", $EMSSession)	
+					$params.add("pssession", $EMSSession)	
 					try {
 						Set-MailboxHidden @params
 					} catch {
@@ -192,9 +192,8 @@ function Disable-UserAccount {
 					write-error "An error has occurred when trying to move the user account to Disabled Users. This step will need to be done manually."
 				}
 			
-				$result = get-aduser "$userAccount" | format-list -property Name,Enabled,@{label='Location';expression={$_.DistinguishedName -replace '^.*OU=|,.*$'}}
-				write-output "Result: $result"
-							
+				write-output "The account decommissioning for $userName has been completed"
+								
 			} #End ShouldContinue
 			
 		} #End foreach
