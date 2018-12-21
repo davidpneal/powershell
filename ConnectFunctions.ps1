@@ -3,7 +3,7 @@
 #for the Connect-OnPremEMS function to work
 
 
-#12/15/2016
+#12/21/2018
 #This function connects to the Office365 Exchange Tenant powershell interface
 Function Connect-Tenant
 {
@@ -41,7 +41,7 @@ Function Connect-Tenant
 	
 	write-verbose "Calling the ConnectServer function"
 		
-	$URI = "https://ps.outlook.com/powershell/"
+	$URI = "https://outlook.office365.com/powershell-liveid/"
 	ConnectServer -URI $URI -connectAs $connectAs -credential $credential -sessionOnly $sessionOnly -exchange
 	#Dont need to explictly return the PSSession (if it exists) since PS will return anything left in the pipeline
 	
