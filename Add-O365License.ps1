@@ -1,4 +1,4 @@
-#12/31/2018
+#1/4/2019
 
 function Add-O365License {
 
@@ -6,9 +6,10 @@ function Add-O365License {
 	.SYNOPSIS
 	This tool adds a license to an Office 365 user account.
 	.DESCRIPTION
-	This tool adds an E1 or E3 license and set the usage location for an Office 365 user account.
+	This tool adds an E1 or E3 license and sets the usage location for an Office 365 user account.  It requires the MSOnline
+	module to be installed.
 	.PARAMETER UserPrincipalName
-	The User Principle Name for the user that is to have a license assigned.
+	The User Principal Name for the user that is to have a license assigned.
 	.PARAMETER License
 	The license type to apply.  Currently the tool will only license for E1 or E3 licenses.  
 	Can be specified as E1, E3 or the full names STANDARDPACK, ENTERPRISEPACK.
@@ -32,7 +33,7 @@ function Add-O365License {
 	Param(
 		[Parameter(Position=0, 
 				   Mandatory=$True,
-				   ValueFromPipeline=$True)]   #Might need to change this to ValueFromPipelineByPropertyName 
+				   ValueFromPipelineByPropertyName=$True)]  
 		[string[]]$UserPrincipalName,
 		
 		[Parameter(Position=1, 
@@ -41,35 +42,28 @@ function Add-O365License {
 		
 		[Parameter(Position=2, 
 				   Mandatory=$False)]
-		[string]$UsageLocation 		#ADD Validate: 2 characters only
+		[string]$UsageLocation 		#Validate: 2 characters only
 	)
 	
 
 	BEGIN {
 		write-verbose "[BEGIN  ] Starting: $($MyInvocation.Mycommand)"
 
-		
-		#Make sure MSOnline is connected
-		try {
-			#redirect the output of this command to null to suppress the output
-			write-verbose "[BEGIN  ] Checking to make sure a connection has been established to Microsoft Online"
-			#PROB: call a msolcmd with -erroraction stop > $null
-					
-		} catch {
-			#ALT Decide, call Connect-MsolService automatically?  Use a write-warning, be sure to recheck the connection is working before continuing
-			throw "The necessary cmdlets are not currently available. Please connect to Microsoft Online and try again."
-		}
+		write-verbose "[BEGIN  ] Checking to make sure a connection has been established to Microsoft Online"
+		#Capture the output since we can use it later on
+		$sku = Get-MsolAccountSku -erroraction stop
 		
 		
-		if (-not $PSBoundParameters.ContainsKey('UsageLocation')) {	##Make sure this works as expected
-			write-verbose "UsageLocation not specified, using the Country Letter Code from the company information."
+		if (-not $PSBoundParameters.ContainsKey('UsageLocation')) {
+			write-verbose "[BEGIN  ] UsageLocation not specified, using the Country Letter Code from the company information."
 			#Caveat: it is unclear whether the UsageLocation code and CountyLetterCode always match for every region
 			
 			try {
-				$UsageLocation = (Get-MsolCompanyInformation).CountryLetterCode
+				$UsageLocation = (Get-MsolCompanyInformation -erroraction stop).CountryLetterCode
 			} catch {
 				throw "Unable to set a default UsageLocation using Get-MsolCompanyInformation"
 			}
+			write-verbose "[BEGIN  ] UsageLocation has been set to $UsageLocation"
 		}
 		
 		
@@ -77,6 +71,8 @@ function Add-O365License {
 		
 		
 		##Check to make sure there are enough free licenses --> Do this in Begin??
+		#	IF license is accepted from the pipeline (currently it isnt), anything related to it will need to be moved to process
+		#Is this necessary?  MSOnline will probably throw an error if there arent enough licenses
 		
 		
 	} #BEGIN
@@ -85,6 +81,9 @@ function Add-O365License {
 	PROCESS {
 		foreach($user in $UserPrincipalName) {
 		
+		###TESTING:
+		write-host $userprincipalname
+		###
 		
 	
 		}
