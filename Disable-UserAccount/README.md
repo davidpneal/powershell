@@ -1,6 +1,6 @@
 # Disable-UserAccount
 
-This is a template for a user decommissioning script which can be modified or expanded to fit a specific environment.  It is setup to integrate with a Office 365 for the email components.  It will handle the following items:
+This is a template for a user decommissioning script which can be modified or expanded to fit a specific environment.  It is setup to integrate with Office 365 for the email components.  It will handle the following items:
 
 * Record the Active Directory groups the user is a member of to a file and then remove the groups from the account.
 * Optionally delegate access to the Office 365 mailbox to a specified user.
