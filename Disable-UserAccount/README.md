@@ -11,5 +11,5 @@ This is a template for a user decommissioning script which can be modified or ex
 
 ### Requirements: 
 * Connect Functions - these functions handle the connections to the Office 365 environment.  They are available under the PowerShell\Office 365 folder.
-* If the script will delegate user accounts, the Set-MailboxDelegation function from the Office 365 filder will also need to be available.
+* If the script will delegate user accounts, the Set-MailboxDelegation function from the Office 365 folder will also need to be available.
 * Active Directory module.
