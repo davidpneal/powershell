@@ -24,7 +24,12 @@ This will dot source any ps1 files in the ConsoleLoad directory into the console
 A pair of tools to help manage cryptolocker threats.
 
 ### CryptoBlocker
-Not yet complete.  This script builds on the work at https://fsrm.experiant.ca/ and will automatically deny share permissions to a user if it looks like they are performing a cryptolocker attack.
+This script builds on the work at https://fsrm.experiant.ca/ and will automatically deny share permissions to a user if it looks like they are performing a cryptolocker attack.  The SMB cmdlets the script uses requires Server 2012 or newer.  The script controls access by adding deny ACE's on the share permissions; if your workflow uses share denies to restrict individual user access to a share, these might inadvertently get removed.
+
+The script is setup as follows:
+* Following the instructions at https://fsrm.experiant.ca/ setup the file screens in passive mode with no email notification.  Be sure the CryptoBlockerTemplate is set to log file violations using the default log message.  This message can be changed, but the script will need to be modified since it extracts information from the log message.
+* The script is run by a scheduled task triggered by an event (8215).  This can be manually setup or added by importing the CryptoBlocker Trigger Task xml file included in the repo.  If you plan on using the included xml, be sure to change the two DOMAIN\administrator strings to an account that has admin rights on the server.
+* Edit the email configuration in the script and copy it to the server.  The script by default is setup to located at C:\scripts\
 
 ### Remove-CryptoBlocker
 A tool to unlock a user account (remove share deny ACE's) once the machine has been verified to be clean.
